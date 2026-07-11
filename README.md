@@ -33,6 +33,7 @@ Per ri-scaricarle: `python data/download_instances.py`.
 
 - `src/instance.py` — parser TSPLIB + matrice distanze EUC_2D (nint)
 - `src/split.py` — decoder Split (DP): partizione ottima del giant tour in rotte
+- `src/budget.py` — contatore FE (criterio di arresto) + log di convergenza
 - `tests/` — test di accettazione per ogni fase (`tests/common.py`: helper condivisi)
 - `experiments/`, `results/`, `plots/`, `report/` — fasi successive
 
@@ -41,7 +42,7 @@ Per ri-scaricarle: `python data/download_instances.py`.
 - [x] Fase 0 — setup repo + istanze
 - [x] Fase 1 — parser + matrice distanze (Test A verde su 10/10)
 - [x] Fase 2 — decoder Split, varianti illimitata e limitata a m rotte (brute-force test verde)
-- [ ] Fase 3 — contatore FE
+- [x] Fase 3 — contatore FE (arresto esatto a 3.5e5), convenzione di conteggio, log di convergenza
 - [ ] Fase 4 — ricerca locale multi-vicinato
 - [ ] Fase 5 — motore immunologico (selezione clonale)
 - [ ] Fasi 6-10 — tuning, esperimenti, analisi, relazione, consegna
