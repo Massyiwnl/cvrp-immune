@@ -218,6 +218,18 @@ def split_limited(tour, inst: Instance, max_routes: int | None = None) -> SplitR
     return SplitResult(int(col[r_best]), routes, len(routes), True)
 
 
+def split_fitness(tour, inst: Instance, max_routes: int) -> SplitResult:
+    """Fitness del progetto: costo della MIGLIORE partizione con al piu'
+    max_routes rotte quando esiste (DP vincolata); in caso contrario il
+    rilassamento illimitato come surrogato (lower bound sullo stesso
+    tour, vedi immune.py). Una chiamata = una valutazione di fitness di
+    un candidato = 1 FE, indipendentemente dal percorso interno."""
+    lim = split_limited(tour, inst, max_routes=max_routes)
+    if lim.feasible:
+        return lim
+    return split(tour, inst)
+
+
 def tour_from_routes(routes) -> np.ndarray:
     """Concatena le rotte in un giant tour: operazione inversa dello Split.
 

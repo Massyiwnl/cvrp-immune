@@ -110,9 +110,13 @@ def test_smoke_A45():
 
 def test_smoke_B66_rispetta_k():
     """B-n66-k9 e' l'istanza dove CW+LS da soli restavano a 10 rotte (>k):
-    il motore con decodifica Split deve riportare un best con <= 9 rotte."""
+    il motore con decodifica Split deve riportare un best con <= 9 rotte.
+    Nota calibrazione: i parametri congelati dal tuning usano discese LS
+    profonde (10k FE/generazione), quindi servono ~10 generazioni perche'
+    la qualita' si esprima -> budget smoke 100k FE (a 50k il run e' ancora
+    a meta' rampa di convergenza)."""
     inst = load_instance(DATA / "B-n66-k9.vrp")
-    res = ImmuneAlgorithm(inst, seed=0, fe_max=50_000).run()
+    res = ImmuneAlgorithm(inst, seed=0, fe_max=100_000).run()
     assert res["respects_k"] and res["best_n_routes"] <= inst.k
     ok, msg = inst.is_feasible(res["best_routes"], max_routes=inst.k)
     assert ok, msg

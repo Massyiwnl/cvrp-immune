@@ -1,0 +1,132 @@
+{
+ "instance": "B-n56-k7",
+ "seed": 0,
+ "fe_max": 350000,
+ "params": {
+  "pop_size": 15,
+  "dup": 3,
+  "rho": null,
+  "tau_b": 20,
+  "ls_clones": 3,
+  "ls_cap_fe": 5000,
+  "h_neighbors": 20,
+  "greedy_fraction": 0.25,
+  "mut_weights": [
+   0.5,
+   0.25,
+   0.25
+  ]
+ },
+ "best_cost": 711,
+ "best_n_routes": 7,
+ "best_routes": [
+  [
+   27,
+   52,
+   16,
+   35,
+   48,
+   32,
+   36,
+   3
+  ],
+  [
+   46,
+   8,
+   28,
+   44,
+   51,
+   14,
+   17,
+   10,
+   18
+  ],
+  [
+   2,
+   30,
+   34,
+   54,
+   31,
+   20,
+   55,
+   11,
+   33,
+   49,
+   13
+  ],
+  [
+   40,
+   5,
+   12,
+   9,
+   38,
+   22,
+   50,
+   23,
+   43
+  ],
+  [
+   25,
+   1
+  ],
+  [
+   21,
+   26,
+   4,
+   39,
+   47,
+   42,
+   24,
+   6,
+   53
+  ],
+  [
+   45,
+   41,
+   29,
+   37,
+   15,
+   7,
+   19
+  ]
+ ],
+ "respects_k": true,
+ "gen_of_best": 20,
+ "fe_of_best": 290201,
+ "generations": 24,
+ "fe_used": 350000,
+ "wall_time": 2.449662246999992,
+ "stats": {
+  "aging_deaths": 60,
+  "births": 0,
+  "dupes_demoted": 48,
+  "ls_calls": 70,
+  "ls_improvements": 68,
+  "lazy_limited": 0,
+  "clones_nonconforming": 0,
+  "clones_total": 1080,
+  "elite_saved_by_aging": 0
+ },
+ "history": [
+  [
+   1,
+   728
+  ],
+  [
+   10060,
+   721
+  ],
+  [
+   20105,
+   716
+  ],
+  [
+   35150,
+   714
+  ],
+  [
+   290201,
+   711
+  ]
+ ]
+}

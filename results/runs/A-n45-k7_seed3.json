@@ -1,0 +1,137 @@
+{
+ "instance": "A-n45-k7",
+ "seed": 3,
+ "fe_max": 350000,
+ "params": {
+  "pop_size": 15,
+  "dup": 3,
+  "rho": null,
+  "tau_b": 20,
+  "ls_clones": 3,
+  "ls_cap_fe": 5000,
+  "h_neighbors": 20,
+  "greedy_fraction": 0.25,
+  "mut_weights": [
+   0.5,
+   0.25,
+   0.25
+  ]
+ },
+ "best_cost": 1148,
+ "best_n_routes": 7,
+ "best_routes": [
+  [
+   40,
+   20,
+   16,
+   7,
+   18
+  ],
+  [
+   12,
+   4,
+   34,
+   35,
+   39
+  ],
+  [
+   31,
+   19,
+   36,
+   29,
+   33
+  ],
+  [
+   10,
+   15,
+   25,
+   23,
+   17,
+   38,
+   13
+  ],
+  [
+   26,
+   21,
+   24,
+   44,
+   14,
+   9,
+   32
+  ],
+  [
+   8,
+   42,
+   1,
+   37,
+   30,
+   5,
+   22
+  ],
+  [
+   2,
+   6,
+   28,
+   3,
+   11,
+   43,
+   41,
+   27
+  ]
+ ],
+ "respects_k": true,
+ "gen_of_best": 20,
+ "fe_of_best": 295797,
+ "generations": 24,
+ "fe_used": 350000,
+ "wall_time": 2.139308303000007,
+ "stats": {
+  "aging_deaths": 12,
+  "births": 0,
+  "dupes_demoted": 32,
+  "ls_calls": 72,
+  "ls_improvements": 72,
+  "lazy_limited": 0,
+  "clones_nonconforming": 128,
+  "clones_total": 1080,
+  "elite_saved_by_aging": 0
+ },
+ "history": [
+  [
+   1,
+   1198
+  ],
+  [
+   33966,
+   1177
+  ],
+  [
+   58331,
+   1168
+  ],
+  [
+   63376,
+   1163
+  ],
+  [
+   112758,
+   1161
+  ],
+  [
+   142074,
+   1160
+  ],
+  [
+   152071,
+   1156
+  ],
+  [
+   270803,
+   1151
+  ],
+  [
+   295797,
+   1148
+  ]
+ ]
+}
