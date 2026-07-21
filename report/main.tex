@@ -1,0 +1,1128 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[italian]{babel}
+\usepackage[a4paper,margin=2.05cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{abstract}
+\renewcommand{\abstractnamefont}{\Large\bfseries}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{caption}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+% Definizione colori per la copertina
+\definecolor{unictblue}{RGB}{11, 25, 46}      % Blu scuro istituzionale
+\definecolor{accentcyan}{RGB}{0, 136, 145}    % Ciano per accenti tecnici
+
+\usepackage[compact]{titlesec}
+\titlespacing*{\section}{0pt}{7pt plus 2pt minus 2pt}{3pt plus 1pt minus 1pt}
+\titlespacing*{\subsection}{0pt}{5pt plus 1pt minus 1pt}{2pt}
+\titlespacing*{\paragraph}{0pt}{4pt plus 1pt minus 1pt}{6pt}
+
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{1pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{0pt}
+\setlength{\textfloatsep}{9pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{7pt plus 2pt minus 2pt}
+
+
+\begin{document}
+% =====================================================================
+%  COPERTINA (TITLE PAGE)
+% =====================================================================
+\begin{titlepage}
+    \centering
+    % Intestazione Università e Dipartimento
+    {\scshape\Large Università degli Studi di Catania} \\
+    \vspace{0.2cm}
+    {\scshape\large Dipartimento di Matematica e Informatica} \\
+    \vspace{0.15cm}
+    {\small Corso di Laurea Magistrale in Informatica LM-18} \\
+    \vspace{0.4cm}
+    
+    \vspace{7.5cm}
+    
+    % Linea decorativa superiore
+    \color{unictblue}\rule{\textwidth}{1.5pt} \\[0.5cm]
+    
+    % Titolo Principale
+    {\huge \bfseries Capacitated Vehicle Routing Problem} \\[0.4cm]
+    
+    % Sottotitolo
+    {\large \bfseries \color{accentcyan} Un algoritmo immunologico a selezione clonale\\ ibridato con ricerca locale} \\[0.2cm]
+    
+    % Linea decorativa inferiore
+    \color{unictblue}\rule{\textwidth}{1.5pt} \\[1.5cm]
+    
+    % Tipologia di documento
+    {\large \scshape Relazione di Progetto --- Heuristics \& Metaheuristics for Optimization \& Learning} \\
+    
+    \vfill
+
+    \vspace{4.5cm}
+    % Sezione Autore e Docenti organizzata su due colonne pulite
+    \begin{minipage}[t]{0.45\textwidth}
+        \begin{flushleft} \large
+            \emph{Studente:} \\
+            \textbf{Massimiliano Cassia} \\
+            \small Matr. \textit{100016487}
+        \end{flushleft}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.45\textwidth}
+        \begin{flushright} \large
+            \emph{Docente:} \\
+            \textbf{Prof. Mario Pavone} 
+        \end{flushright}
+    \end{minipage}
+    
+    \vfill
+    \vspace{1.5cm}
+    
+    % Piè di pagina con l'Anno Accademico corrente
+    \color{black}
+    {\large Anno Accademico 2025/2026}
+    
+\end{titlepage}
+\pagenumbering{roman}
+\begin{abstract}
+\large
+\noindent
+Questo lavoro presenta un algoritmo immunologico ispirato al principio della
+selezione clonale (opzione~2 della consegna), ibridato con una ricerca locale a
+vicinati multipli, per il \emph{Capacitated Vehicle Routing Problem}. L'elemento
+portante è la rappresentazione di ogni soluzione come singola permutazione di
+clienti (\emph{giant tour}), con la suddivisione in percorsi delegata a un
+decodificatore \emph{esatto} basato su programmazione dinamica (\emph{Split}).
+Sulle dieci istanze CVRPLIB richieste, con $5$~esecuzioni indipendenti ciascuna e
+criterio di arresto $\mathrm{FE}=3.5\times 10^5$, l'algoritmo raggiunge uno scarto
+medio dall'ottimo noto dell'$1{,}82\%$ (minimo $0{,}17\%$, massimo $5{,}58\%$);
+tutte le città sono servite in tutte le esecuzioni e il vincolo sul numero di
+veicoli è sempre rispettato. Un'analisi conclusiva scompone in modo esatto lo
+scarto residuo, mostrando che esso è interamente imputabile all'\emph{assegnamento}
+dei clienti ai veicoli e non all'\emph{ordinamento} interno dei percorsi, che
+risulta ottimo in tutte le soluzioni prodotte.
+\end{abstract}
+\newpage
+\pagenumbering{arabic}
+\tableofcontents
+\bigskip
+\newpage
+\section{Introduzione}
+\label{sec:intro}
+
+Il \emph{Vehicle Routing Problem} (VRP) è uno dei problemi
+classici dell'ottimizzazione combinatoria: dato un insieme di veicoli e un
+insieme di clienti geograficamente distribuiti, si devono progettare i percorsi
+di costo minimo che servono tutti i clienti partendo da un deposito centrale e
+ritornandovi. Nella variante \emph{capacitata} (CVRP), oggetto
+di questo progetto, ogni veicolo ha una capacità di carico limitata e la somma
+delle domande dei clienti serviti da un percorso non può superarla.
+
+Il CVRP è \textbf{NP-hard}: contiene come caso particolare il \emph{Travelling
+Salesman Problem} (basta porre la capacità pari alla domanda totale, ottenendo
+un unico percorso che visita tutti i clienti). Non è quindi ragionevole
+attendersi un algoritmo esatto efficiente per istanze di dimensione
+interessante, e il ricorso a una metaeuristica è pienamente giustificato:
+rinunciamo alla garanzia di ottimalità in cambio di soluzioni di alta qualità in
+tempi accettabili.
+
+\paragraph{Contributi del lavoro.} Il progetto sviluppa: una
+\textbf{rappresentazione a giant tour} con \textbf{decodifica esatta} tramite
+programmazione dinamica (Sez.~\ref{sec:split}), che garantisce l'ammissibilità per
+costruzione e disaccoppia i due sotto-problemi del CVRP; un \textbf{motore
+immunologico a selezione clonale} con ipermutazione inversamente proporzionale
+alla \emph{fitness}, \emph{aging} elitista e selezione $(\mu+\lambda)$ con
+soppressione dei duplicati (Sez.~\ref{sec:immune}); una \textbf{ricerca locale a
+cinque vicinati} integrata in schema \emph{lamarckiano} con tetto di valutazioni
+per invocazione (Sez.~\ref{sec:ls}); una \textbf{gestione del vincolo di flotta}
+per decodifica vincolata e selezione \emph{feasibility-first}, imposta dalle
+istanze a capacità satura (Sez.~\ref{sec:difficolta}); e un'\textbf{analisi critica
+quantitativa} che scompone lo scarto residuo e ne individua la causa
+(Sez.~\ref{sec:critica}).
+
+\section{Il problema}
+\label{sec:problema}
+
+Sia $G=(V,E)$ un grafo completo con $V=\{v_0,v_1,\dots,v_n\}$, dove $v_0$ è il
+\emph{depot} e $V\setminus\{v_0\}$ è l'insieme dei clienti. A ogni arco $(i,j)$
+è associato un costo non negativo $d_{ij}$. Ogni cliente $i$ ha una domanda
+$q(i)>0$; sono disponibili $m$ veicoli, ciascuno di capacità $\sigma$.
+
+Una soluzione è un insieme di percorsi $\eta_1,\dots,\eta_m$ tale che ogni cliente
+sia visitato esattamente una volta da un solo veicolo, ogni percorso inizi e
+termini al depot e, per ogni veicolo $h$, valga
+$\sum_{i \in V_{\eta_h}} q(i) \le \sigma$. L'obiettivo è minimizzare il costo
+totale $\sum_{h=1}^{m}\sum_{(i,j)\in\eta_h} d_{ij}$.
+
+\paragraph{Le istanze e la matrice delle distanze.}
+Le dieci istanze richieste appartengono ai gruppi A, B, E e P della libreria
+CVRPLIB, in formato TSPLIB con \texttt{EDGE\_WEIGHT\_TYPE = EUC\_2D}. Le
+distanze sono \emph{intere}, ottenute arrotondando la distanza euclidea:
+\[
+  d_{ij} \;=\; \left\lfloor \sqrt{(x_i-x_j)^2 + (y_i-y_j)^2} + 0{,}5 \right\rfloor .
+\]
+La funzione \texttt{round} dei linguaggi più diffusi
+implementa l'arrotondamento \emph{bancario} (il caso $0{,}5$ va al pari), che su
+alcune coppie di punti differisce da quello TSPLIB e renderebbe i costi non
+confrontabili con gli ottimi pubblicati. La matrice è stata validata
+sperimentalmente: per tutte e dieci le istanze, il costo delle soluzioni ottime
+ufficiali ricalcolato con la nostra matrice coincide \emph{esattamente} con quello
+dichiarato da CVRPLIB --- verifica che fonda ogni confronto quantitativo del
+seguito.
+
+\paragraph{Una proprietà comune alle dieci istanze.}
+Su tutte e dieci le istanze vale $\lceil \sum_i q(i) / \sigma \rceil = k$, dove
+$k$ è il numero di veicoli indicato nel nome dell'istanza. Il numero di veicoli
+disponibili coincide dunque con il \emph{minimo teorico}: la capacità è
+\emph{satura} (il riempimento medio dei veicoli va dall'$87\%$ al $95\%$). Come
+si vedrà nella Sezione~\ref{sec:difficolta}, questa caratteristica --- notata
+durante l'analisi preliminare dei dati e non evidente a priori --- ha avuto
+conseguenze profonde sulla progettazione dell'algoritmo.
+
+\section{Rappresentazione e decodifica esatta (Split)}
+\label{sec:split}
+
+\subsection{La scelta della rappresentazione}
+
+Il CVRP contiene, intrecciati, due sotto-problemi di natura diversa:
+\begin{itemize}\itemsep1pt
+  \item l'\textbf{assegnamento}: \emph{quali} clienti affidare a \emph{quale} veicolo (un problema di partizione con vincolo di capacità);
+  \item l'\textbf{ordinamento}: in \emph{quale ordine} visitare i clienti di ciascun veicolo (un TSP su ogni percorso).
+\end{itemize}
+
+La rappresentazione più immediata --- una lista di percorsi espliciti --- obbliga
+gli operatori genetici a manipolare simultaneamente entrambi gli aspetti, e
+soprattutto a preoccuparsi costantemente dell'ammissibilità: qualunque mutazione
+che sposti un cliente rischia di violare la capacità di un veicolo, imponendo o
+meccanismi di riparazione o funzioni di penalità.
+
+Abbiamo scelto la strada opposta. Una soluzione è codificata come un
+\textbf{giant tour}: una singola permutazione $S=(s_1,\dots,s_{n})$ di tutti i
+clienti, \emph{priva di separatori di percorso}. La suddivisione in percorsi non
+è codificata nel genotipo: viene \emph{calcolata in modo ottimo} al momento della
+valutazione, dal decodificatore \emph{Split}.
+
+\subsection{Il decodificatore Split}
+
+Fissato l'ordine $S$, si consideri il grafo ausiliario aciclico $H$ con nodi
+$0,1,\dots,n$, in cui l'arco $(i,j)$ con $i<j$ rappresenta la decisione ``un
+veicolo serve i clienti $s_{i+1},\dots,s_j$ in quest'ordine''. L'arco esiste solo
+se il carico del segmento non supera la capacità, e il suo costo è
+\[
+  c(i,j) \;=\; d_{0,s_{i+1}} \;+\; \sum_{t=i+1}^{j-1} d_{s_t,s_{t+1}} \;+\; d_{s_j,0}.
+\]
+Poiché ogni cammino da $0$ a $n$ in $H$ corrisponde biunivocamente a una
+suddivisione di $S$ in percorsi ammissibili, il \textbf{cammino di costo minimo}
+da $0$ a $n$ fornisce la \emph{migliore} suddivisione possibile del giant tour.
+$H$ è un DAG già ordinato topologicamente, quindi il cammino minimo si calcola
+con la ricorrenza di Bellman (Algoritmo~\ref{alg:split}), un'applicazione diretta
+della \textbf{programmazione dinamica}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.95, every node/.style={font=\small}]
+  % giant tour
+  \node[font=\small\bfseries] at (-1.6,1.6) {giant tour};
+  \foreach \i/\x in {1/0, 2/1.1, 3/2.2, 4/3.3, 5/4.4, 6/5.5, 7/6.6} {
+    \node[draw,circle,minimum size=6.5mm,fill=gray!8] (s\i) at (\x,1.6) {$s_{\i}$};
+  }
+  % nodi DAG
+  \node[font=\small\bfseries] at (-1.6,0) {grafo $H$};
+  \foreach \i/\x in {0/-0.55, 1/0.55, 2/1.65, 3/2.75, 4/3.85, 5/4.95, 6/6.05, 7/7.15} {
+    \node[draw,circle,minimum size=5mm,inner sep=0pt,fill=white] (n\i) at (\x,0) {\tiny \i};
+  }
+  \foreach \a/\b in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7} {
+    \draw[-{Latex[length=1.6mm]},gray!55] (n\a) -- (n\b);
+  }
+  % archi lunghi (segmenti = percorsi)
+  \draw[-{Latex[length=1.8mm]},thick,blue!70!black] (n0) to[bend right=32] node[below,font=\tiny,pos=0.5] {$c(0,3)$} (n3);
+  \draw[-{Latex[length=1.8mm]},thick,blue!70!black] (n3) to[bend right=32] node[below,font=\tiny,pos=0.5] {$c(3,5)$} (n5);
+  \draw[-{Latex[length=1.8mm]},thick,blue!70!black] (n5) to[bend right=32] node[below,font=\tiny,pos=0.5] {$c(5,7)$} (n7);
+  \draw[gray!40,dashed] (n2) to[bend left=25] (n5);
+  \draw[gray!40,dashed] (n1) to[bend left=22] (n4);
+  % percorsi risultanti
+  \node[font=\small\bfseries] at (-1.6,-2.15) {percorsi};
+  \node[draw,rounded corners,fill=blue!6,minimum height=6mm] at (0.55,-2.15) {\small $0\!\to\! s_1 s_2 s_3 \!\to\! 0$};
+  \node[draw,rounded corners,fill=blue!6,minimum height=6mm] at (3.4,-2.15) {\small $0\!\to\! s_4 s_5 \!\to\! 0$};
+  \node[draw,rounded corners,fill=blue!6,minimum height=6mm] at (6.2,-2.15) {\small $0\!\to\! s_6 s_7 \!\to\! 0$};
+  \draw[-{Latex[length=1.6mm]},blue!70!black,thick] (2.8,-0.85) -- (2.8,-1.75);
+  \node[font=\tiny,anchor=west] at (2.95,-1.3) {cammino minimo $0\!\to\! n$};
+\end{tikzpicture}
+\caption{Decodifica Split. Il giant tour (in alto) non contiene separatori. Nel
+grafo ausiliario $H$ ogni arco rappresenta un possibile percorso (un segmento
+\emph{contiguo} del tour, ammissibile rispetto alla capacità); tratteggiati alcuni
+archi alternativi non scelti. Il cammino minimo da $0$ a $n$ (in blu) individua la
+suddivisione ottima, da cui si leggono i percorsi.}
+\label{fig:split}
+\end{figure}
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\DontPrintSemicolon
+\KwIn{giant tour $S$, domande $q$, distanze $d$, capacità $\sigma$}
+\KwOut{costo ottimo $V[n]$ e suddivisione in percorsi}
+$V[0] \leftarrow 0$; \quad $V[j] \leftarrow +\infty$, \; $\mathit{pred}[j] \leftarrow -1$ \quad per $j=1,\dots,n$\;
+\For{$i \leftarrow 0$ \KwTo $n-1$}{
+  \lIf{$V[i] = +\infty$}{\textbf{continue}}
+  $\mathit{load} \leftarrow 0$; \; $\mathit{cost} \leftarrow 0$\;
+  \For{$j \leftarrow i+1$ \KwTo $n$}{
+    $\mathit{load} \leftarrow \mathit{load} + q(s_j)$\;
+    \lIf{$\mathit{load} > \sigma$}{\textbf{break} \quad \tcp*[h]{potatura: nessuna estensione è ammissibile}}
+    \eIf{$j = i+1$}{
+      $\mathit{cost} \leftarrow d_{0,s_j} + d_{s_j,0}$ \tcp*{percorso con un solo cliente}
+    }{
+      $\mathit{cost} \leftarrow \mathit{cost} - d_{s_{j-1},0} + d_{s_{j-1},s_j} + d_{s_j,0}$ \tcp*{estensione in $O(1)$}
+    }
+    \If{$V[i] + \mathit{cost} < V[j]$}{
+      $V[j] \leftarrow V[i] + \mathit{cost}$; \quad $\mathit{pred}[j] \leftarrow i$\;
+    }
+  }
+}
+\Return $V[n]$ e i percorsi ottenuti risalendo $\mathit{pred}$ da $n$ a $0$\;
+\caption{\textsc{Split} --- suddivisione ottima di un giant tour (Bellman su DAG)}
+\label{alg:split}
+\end{algorithm}
+
+\paragraph{Complessità.} Il ciclo interno si interrompe non appena il carico
+supera $\sigma$: detto $s^{*}$ il numero massimo di clienti che stanno in un
+veicolo, il costo è $O(n \cdot s^{*})$. L'aggiornamento incrementale di
+$\mathit{cost}$ in $O(1)$ (riga~9) evita di ricalcolare da capo il costo di ogni
+segmento. In pratica, su $n=100$ una decodifica richiede meno di un millisecondo.
+
+\paragraph{Perché questa scelta paga.} Quattro vantaggi concreti.
+\emph{Ammissibilità per costruzione}: ogni soluzione decodificata rispetta la
+capacità, senza riparazioni né penalità. \emph{Operatori semplici}: le mutazioni
+agiscono su una permutazione e non possono produrre soluzioni inammissibili.
+\emph{Ottimalità della suddivisione}: a parità di ordine nessun algoritmo può fare
+meglio della programmazione dinamica, e la metaeuristica può concentrarsi
+\emph{solo} sull'ordinamento. \emph{Paesaggio più regolare}: una singola mutazione
+può riorganizzare radicalmente i percorsi, perché la decodifica si riadatta.
+
+\paragraph{Verifica di correttezza.} Oltre al confronto con un'enumerazione
+esaustiva su istanze giocattolo, il decodificatore soddisfa una proprietà
+verificabile in modo esatto: concatenando i percorsi della soluzione
+\emph{ottima} di CVRPLIB in un giant tour e applicandovi lo Split (vincolato a
+$k$ percorsi) si riottiene \emph{esattamente} il costo ottimo. La dimostrazione è
+immediata: la suddivisione ottima è una delle suddivisioni contigue con al più
+$k$ percorsi, dunque il costo calcolato non può essere superiore all'ottimo; e
+ogni suddivisione con al più $k$ percorsi è una soluzione ammissibile del CVRP,
+dunque non può essere inferiore. Questo controllo è superato su tutte e dieci le
+istanze.
+
+\section{L'algoritmo immunologico a selezione clonale}
+\label{sec:immune}
+
+\subsection{Motivazione della scelta}
+
+Fra le cinque opzioni proposte, la scelta è caduta sull'\textbf{algoritmo
+immunologico a selezione clonale} (opzione~2), ibridato con ricerca locale. Le
+ragioni sono tre.
+
+In primo luogo, il paradigma immunologico offre un \textbf{meccanismo di
+bilanciamento fra esplorazione e sfruttamento che è intrinseco e adattivo}, e non
+un parametro fisso: l'ipermutazione modula l'intensità della perturbazione in
+funzione della qualità dell'individuo, cosicché le soluzioni migliori vengono
+raffinate con piccoli aggiustamenti mentre quelle peggiori esplorano
+aggressivamente lo spazio. In un algoritmo genetico classico il tasso di
+mutazione è invece uniforme sulla popolazione. In secondo luogo, l'\emph{aging}
+fornisce un meccanismo esplicito e diretto contro la convergenza prematura,
+problema notoriamente critico nel CVRP, dove il paesaggio di ricerca è ricco di
+ottimi locali profondi. In terzo luogo, la selezione clonale non richiede un
+operatore di ricombinazione: il crossover su permutazioni (OX, PMX, ecc.) è
+sempre un compromesso delicato, e poterne fare a meno riduce le scelte arbitrarie
+e le fonti di errore.
+
+
+
+\subsection{Struttura di un anticorpo e ciclo generazionale}
+
+Un \textbf{anticorpo} è la tripla $(\text{giant tour},\ \text{costo},\ \text{età})$.
+Il costo (la \emph{fitness}, da minimizzare) è ottenuto dalla decodifica della
+Sezione~\ref{sec:split}; l'età governa l'invecchiamento. La popolazione ha
+dimensione $B$ e il ciclo generazionale è riassunto nella
+Figura~\ref{fig:pipeline} e nell'Algoritmo~\ref{alg:immune}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners,minimum height=7.5mm,minimum width=21mm,
+              align=center,font=\small,fill=gray!10},
+  op/.style={draw,rounded corners,minimum height=7.5mm,minimum width=21mm,
+             align=center,font=\small,fill=orange!10},
+  dec/.style={draw,rounded corners,minimum height=7.5mm,minimum width=19mm,
+              align=center,font=\small,fill=blue!8},
+  arr/.style={-{Latex[length=2mm]},thick}
+]
+  % riga superiore
+  \node[box]                          (init)  at (0,0)    {inizializzazione\\{\scriptsize greedy + casuale}};
+  \node[op, right=6mm of init]        (clone) {\textbf{cloning}\\{\scriptsize $\times\,\mathit{dup}$}};
+  \node[op, right=6mm of clone]       (hyper) {\textbf{ipermutazione}\\{\scriptsize $\propto$ inversa fitness}};
+  \node[op, right=6mm of hyper]       (eval)  {\textbf{valutazione}\\{\scriptsize Split (DP)}};
+  \node[op, right=6mm of eval]        (ls)    {\textbf{ricerca locale}\\{\scriptsize sui $K$ migliori}};
+  % riga inferiore
+  \node[op, below=9mm of ls]          (aging) {\textbf{aging}\\{\scriptsize elitista}};
+  \node[op, left=6mm of aging]        (sel)   {\textbf{selezione} $(\mu\!+\!\lambda)$\\{\scriptsize senza duplicati}};
+  \node[dec, left=6mm of sel]         (stop)  {budget FE\\esaurito?};
+  \node[box, left=6mm of stop]        (out)   {migliore\\soluzione};
+
+  \draw[arr] (init)  -- (clone);
+  \draw[arr] (clone) -- (hyper);
+  \draw[arr] (hyper) -- (eval);
+  \draw[arr] (eval)  -- (ls);
+  \draw[arr] (ls)    -- (aging);
+  \draw[arr] (aging) -- (sel);
+  \draw[arr] (sel)   -- (stop);
+  \draw[arr] (stop)  -- node[above,font=\scriptsize] {sì} (out);
+  % retroazione: nuova generazione -> riparte dal cloning (NON dall'inizializzazione)
+  \draw[arr] (stop.south) -- ++(0,-5mm) -| node[pos=0.25,below,font=\scriptsize]
+        {no: nuova generazione} (clone.south);
+\end{tikzpicture}
+\caption{Ciclo generazionale. L'inizializzazione avviene una sola volta; le fasi
+in arancione sono gli operatori immunologici e l'ibridazione con la ricerca
+locale, ripetuti a ogni generazione finché il budget di valutazioni non è
+esaurito.}
+\label{fig:pipeline}
+\end{figure}
+
+\paragraph{Inizializzazione: greedy e casuale.}
+Il $25\%$ della popolazione è seminato a partire dall'euristica costruttiva di
+\textbf{Clarke--Wright} (algoritmo dei \emph{savings}, un tipico algoritmo
+\emph{greedy}): si parte dalla soluzione banale con un veicolo per cliente e si
+fondono iterativamente i percorsi in ordine decrescente di risparmio
+$s(i,j)=d_{0i}+d_{0j}-d_{ij}$, quando ammissibile. Il primo individuo è la
+soluzione di Clarke--Wright pura; gli altri ne sono perturbazioni casuali. Il
+restante $75\%$ è costituito da permutazioni casuali.
+
+Il bilanciamento è un compromesso: una popolazione interamente greedy sarebbe fatta
+di individui quasi identici (diversità nulla), una interamente casuale sprecherebbe
+gran parte del budget per raggiungere una qualità che l'euristica costruttiva
+fornisce gratuitamente.
+
+\subsection{Ipermutazione inversamente proporzionale alla fitness}
+
+È l'operatore caratterizzante del paradigma immunologico. Detti $c_i$ il costo
+dell'$i$-esimo anticorpo, $c_{\min}$ e $c_{\max}$ il costo minimo e massimo nella
+popolazione corrente, si definisce la \textbf{fitness normalizzata}
+\[
+  \hat{f}_i \;=\; \frac{c_{\max}-c_i}{c_{\max}-c_{\min}} \;\in\; [0,1],
+  \qquad (\hat{f}=1 \text{ per il migliore},\; \hat{f}=0 \text{ per il peggiore})
+\]
+e il \textbf{numero di mutazioni elementari} da applicare al clone:
+\[
+  \boxed{\;M_i \;=\; \max\!\left(1,\; \left\lceil\, n \cdot e^{-\rho\,\hat{f}_i} \,\right\rceil\right)\;}
+  \qquad\text{con } \rho = \ln n .
+\]
+La scelta $\rho=\ln n$ non è arbitraria: con essa il migliore riceve
+\emph{esattamente una} mutazione ($n \cdot e^{-\ln n} = 1$) e il peggiore ne
+riceve $n$, cioè una randomizzazione pressoché completa. La legge esponenziale
+realizza dunque, con un solo parametro, l'intero spettro fra sfruttamento puro e
+esplorazione pura, assegnando a ciascun individuo l'intensità di perturbazione
+adatta alla sua qualità. Nel caso degenere $c_{\max}=c_{\min}$ si pone
+$\hat{f}=1$ per tutti; la diversità viene allora reintrodotta dall'aging e dalla
+soppressione dei duplicati, non da mutazioni più violente.
+
+Ogni mutazione elementare è estratta fra tre operatori: \textbf{inversione} di un
+segmento (peso $0{,}50$), \textbf{scambio} di due posizioni ($0{,}25$) e
+\textbf{inserimento} di un cliente in altra posizione ($0{,}25$). All'inversione è
+assegnato il peso maggiore perché è la mossa più efficace sulle permutazioni di
+percorso: preserva tutte le adiacenze interne al segmento, distruggendo solo i due
+archi agli estremi. Tutte e tre preservano l'invariante di permutazione;
+l'ammissibilità della soluzione decodificata è poi garantita dallo Split.
+
+\subsection{Aging elitista e selezione}
+
+\paragraph{Aging.} Ogni anticorpo ha un'età, incrementata a ogni generazione. Un
+clone \emph{eredita} l'età del genitore, ma essa viene \textbf{azzerata se il
+clone migliora il genitore}: le linee evolutive che stanno progredendo vengono
+così protette, mentre quelle stagnanti invecchiano e muoiono. Superata l'età
+massima $\tau_B$, l'anticorpo viene rimosso. L'aging è \textbf{elitista}: il
+miglior anticorpo corrente non muore mai, per non perdere l'informazione
+migliore disponibile.
+
+\paragraph{Selezione $(\mu+\lambda)$ con soppressione dei duplicati.} Dall'unione
+di genitori e cloni sopravvissuti all'aging si selezionano i $B$ migliori. La
+selezione, però, \textbf{scarta i duplicati}: a parità di costo passa un solo
+anticorpo, e i duplicati rientrano solo se non ci sono abbastanza soluzioni
+distinte. Questa regola, apparentemente minore, si è rivelata essenziale
+(Sezione~\ref{sec:difficolta}). Se dopo la selezione la popolazione è sotto
+organico, si generano \textbf{nuovi anticorpi casuali} (nascite), ulteriore
+iniezione di diversità.
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\DontPrintSemicolon
+\KwIn{istanza, budget $\mathrm{FE}_{\max}=3.5\times10^5$, parametri $B$, $\mathit{dup}$, $\rho$, $\tau_B$, $K$, $\mathit{cap}$}
+\KwOut{migliore soluzione ammissibile trovata}
+$P \leftarrow$ inizializza $B$ anticorpi ($25\%$ da Clarke--Wright, resto casuali); valuta\;
+\While{budget non esaurito}{
+  $\hat{f} \leftarrow$ fitness normalizzata di $P$\;
+  $C \leftarrow \emptyset$\;
+  \ForEach{$a \in P$}{
+    $M \leftarrow \max(1, \lceil n\, e^{-\rho \hat{f}_a}\rceil)$ \tcp*{ipermutazione}
+    \For{$1$ \KwTo $\mathit{dup}$}{
+      $c \leftarrow$ \textsc{Muta}($a$, $M$); \; valuta $c$ con \textsc{Split} \tcp*{1 FE}
+      $c.\mathit{et\grave{a}} \leftarrow a.\mathit{et\grave{a}}$; \quad $C \leftarrow C \cup \{c\}$\;
+    }
+  }
+  \ForEach{$c \in$ i $K$ migliori di $C$}{
+    $c \leftarrow$ \textsc{RicercaLocale}($c$, tetto $=\mathit{cap}$ FE) \tcp*{ibridazione lamarckiana}
+  }
+  \lForEach{$c \in C$ che migliora il proprio genitore}{$c.\mathit{et\grave{a}} \leftarrow 0$}
+  $\text{incrementa l'età di } P \cup C$; \; rimuovi chi ha età $> \tau_B$ (mai il migliore) \tcp*{aging}
+  $P \leftarrow$ i $B$ migliori dei sopravvissuti, \textbf{senza duplicati} \tcp*{selezione $(\mu+\lambda)$}
+  \lIf{$|P| < B$}{completa con anticorpi casuali (nascite)}
+}
+\caption{Algoritmo immunologico a selezione clonale, ibridato con ricerca locale}
+\label{alg:immune}
+\end{algorithm}
+
+\section{Ricerca locale e ibridazione}
+\label{sec:ls}
+
+L'ibridazione con la ricerca locale è ciò che porta la qualità delle soluzioni
+vicino agli ottimi noti: è l'aspetto \emph{hybrid metaheuristics} del progetto.
+La ricerca locale opera sui \emph{percorsi decodificati} e usa cinque vicinati,
+esplorati in sequenza con strategia \emph{first-improvement} finché un giro
+completo non produce miglioramenti (Figura~\ref{fig:mosse}): \textbf{2-opt}
+(intra-percorso: inverte un segmento, eliminando gli incroci); \textbf{Or-opt}
+(sposta una catena di $1$--$3$ clienti consecutivi, eventualmente invertendola,
+nello stesso percorso o in un altro); \textbf{relocate} (sposta un cliente in un
+altro percorso: è il caso di Or-opt con catena unitaria); \textbf{swap} (scambia
+due clienti di percorsi diversi); \textbf{2-opt*} (scambia le \emph{code} di due
+percorsi, e come caso limite ne realizza la \emph{fusione}). I primi due agiscono
+sull'\emph{ordinamento}, gli ultimi tre sull'\emph{assegnamento}: insieme coprono
+entrambe le componenti del problema.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.78, every node/.style={font=\scriptsize},
+    dep/.style={draw,fill=black,rectangle,minimum size=2.2mm,inner sep=0pt},
+    cli/.style={draw,fill=gray!35,circle,minimum size=2.2mm,inner sep=0pt},
+    old/.style={gray!50,dashed,thick},
+    new/.style={blue!70!black,thick}]
+  % 2-opt
+  \begin{scope}[shift={(0,0)}]
+    \node[font=\small\bfseries] at (1.6,2.1) {2-opt};
+    \node[dep] (d) at (0,0) {};
+    \node[cli] (a) at (1,1.2) {}; \node[cli] (b) at (2.2,1.3) {};
+    \node[cli] (c) at (2.6,0.2) {}; \node[cli] (e) at (1.3,0.1) {};
+    \draw[old] (d) -- (a) -- (c) -- (b) -- (e) -- (d);
+    \draw[new] (d) -- (a) -- (b) -- (c) -- (e) -- (d);
+    \node at (1.6,-0.75) {inverte un segmento};
+  \end{scope}
+  % relocate / or-opt
+  \begin{scope}[shift={(4.4,0)}]
+    \node[font=\small\bfseries] at (1.6,2.1) {Or-opt / relocate};
+    \node[dep] (d2) at (0,0) {};
+    \node[cli] (a2) at (0.9,1.3) {}; \node[cli] (b2) at (2.1,1.4) {};
+    \node[cli] (c2) at (2.7,0.3) {}; \node[cli,fill=orange!60] (x2) at (1.5,0.75) {};
+    \draw[old] (a2) -- (x2) -- (b2);
+    \draw[new] (d2) -- (a2) -- (b2) -- (c2) -- (d2);
+    \draw[new] (c2) to[bend right=20] (x2); \draw[new] (x2) to[bend right=25] (d2);
+    \node at (1.6,-0.75) {sposta una catena};
+  \end{scope}
+  % swap
+  \begin{scope}[shift={(8.8,0)}]
+    \node[font=\small\bfseries] at (1.6,2.1) {swap};
+    \node[dep] (d3) at (0,0) {};
+    \node[cli] (a3) at (0.8,1.35) {}; \node[cli,fill=orange!60] (u3) at (1.9,1.5) {};
+    \node[cli] (b3) at (2.9,0.9) {}; \node[cli,fill=green!45] (v3) at (2.0,0.35) {};
+    \node[cli] (c3) at (0.9,0.4) {};
+    \draw[new] (d3) -- (a3) -- (u3) -- (b3);
+    \draw[new] (d3) -- (c3) -- (v3);
+    \draw[<->,orange!80!black,thick,dashed] (u3) -- (v3);
+    \node at (1.6,-0.75) {scambia due clienti};
+  \end{scope}
+  % 2-opt*
+  \begin{scope}[shift={(13.2,0)}]
+    \node[font=\small\bfseries] at (1.4,2.1) {2-opt*};
+    \node[dep] (d4) at (0,0) {};
+    \node[cli] (p1) at (0.9,1.4) {}; \node[cli] (p2) at (2.2,1.5) {};
+    \node[cli] (q1) at (1.0,0.5) {}; \node[cli] (q2) at (2.3,0.5) {};
+    \draw[old] (p1) -- (p2); \draw[old] (q1) -- (q2);
+    \draw[new] (d4) -- (p1) -- (q2); \draw[new] (d4) -- (q1) -- (p2);
+    \node at (1.4,-0.75) {scambia le code};
+  \end{scope}
+\end{tikzpicture}
+\caption{I vicinati della ricerca locale (tratteggiato grigio: archi rimossi; blu:
+archi creati). I primi due agiscono sull'ordinamento interno ai percorsi, gli
+ultimi due sull'assegnamento dei clienti ai veicoli.}
+\label{fig:mosse}
+\end{figure}
+
+\paragraph{Valutazione incrementale e liste di candidati.} Ogni mossa è valutata
+in $O(1)$ tramite la variazione di costo $\Delta$ (differenza fra archi creati e
+archi rimossi); i controlli di capacità sono anch'essi in $O(1)$ grazie alle
+somme prefisse dei carichi. L'esplorazione completa dei vicinati
+inter-percorso costerebbe $O(n^2)$ valutazioni per passata, insostenibile con un
+budget di $3{,}5\times10^5$ valutazioni: si adotta quindi la tecnica standard
+delle \textbf{liste di candidati}, considerando per ogni cliente solo mosse che
+creano archi verso uno dei suoi $h=20$ vicini più prossimi.
+
+\paragraph{Ibridazione lamarckiana.} La soluzione migliorata dalla ricerca locale
+viene \textbf{riscritta nel genotipo}: i percorsi ottimizzati sono riconcatenati
+in un nuovo giant tour, che sostituisce quello originale dell'anticorpo. Si tratta
+di apprendimento \emph{lamarckiano} (il carattere acquisito viene ereditato), in
+contrapposizione allo schema \emph{baldwiniano}, in cui il miglioramento
+influenzerebbe solo la fitness lasciando intatto il genotipo. La scelta
+lamarckiana è motivata dalla struttura della rappresentazione: poiché lo Split
+estrae segmenti contigui, la riconcatenazione dei percorsi ottimizzati è una
+operazione esatta e senza perdita di informazione, e trasmette ai discendenti il
+lavoro già svolto dalla ricerca locale.
+
+\paragraph{Il tetto di valutazioni per invocazione.} Una discesa completa fino
+all'ottimo locale costa in media $\sim\!12\,000$ valutazioni: con l'intero budget se
+ne potrebbero fare solo $29$. Ma il costo non è distribuito uniformemente: gran
+parte delle valutazioni è consumata dall'ultima passata, quella che scandaglia tutti
+i vicinati \emph{senza trovare nulla}, per certificare l'ottimalità locale. Abbiamo
+quindi introdotto un \textbf{tetto di FE per invocazione} ($\mathit{cap}$): la
+discesa si interrompe al tetto, rinunciando alla certificazione ma conservando i
+miglioramenti ad alto rendimento. Con $K$, è il parametro più influente
+dell'algoritmo (Sezione~\ref{sec:tuning}).
+
+\subsection{Complessità computazionale}
+\label{sec:complessita}
+
+Detti $n$ i clienti, $B$ la popolazione, $\mathit{dup}$ i cloni per anticorpo,
+$s^{*}$ il massimo numero di clienti in un veicolo, $h$ l'ampiezza delle liste di
+candidati, una generazione costa: $O(B\,\mathit{dup}\,n)$ per l'ipermutazione nel
+caso peggiore (il peggior anticorpo riceve $n$ mutazioni, ma in media $M_i \ll n$);
+$O(B\,\mathit{dup}\cdot k\,n\,s^{*})$ per la valutazione dei cloni (una decodifica
+ciascuno, con la DP vincolata a $k$ percorsi); $O(K\cdot\mathit{cap})$ per la
+ricerca locale, limitata per costruzione dal tetto, con una passata sui vicinati
+inter-percorso che costa $O(n\,h)$ anziché $O(n^2)$ grazie alle liste di candidati;
+e $O(B\,\mathit{dup}\log(B\,\mathit{dup}))$ per aging e selezione.
+
+Con i parametri congelati il termine dominante è di gran lunga la ricerca locale
+($K\cdot\mathit{cap}=15\,000$ valutazioni contro le $B\cdot\mathit{dup}=45$
+decodifiche): è questa asimmetria a spiegare perché il budget di $3{,}5\times10^5$
+valutazioni si esaurisca in circa $24$ generazioni, e perché il tetto
+$\mathit{cap}$ sia il parametro più influente dell'algoritmo. In termini di tempo,
+una \emph{run} completa richiede fra $1{,}5$ e $6$ secondi.
+
+\paragraph{Convenzione di conteggio delle valutazioni.} Il criterio di arresto
+imposto è il numero massimo di valutazioni della funzione di fitness. Adottiamo
+la convenzione più \textbf{conservativa}: \emph{una valutazione $=$ il calcolo del
+costo di una soluzione candidata}, sia essa una decodifica Split completa
+\emph{oppure} la valutazione incrementale $\Delta$ di un vicino esaminato dalla
+ricerca locale. Il fatto che il $\Delta$ si calcoli in $O(1)$ è un'ottimizzazione
+di \emph{velocità}, non una ragione per non contare la valutazione. Una
+convenzione più permissiva (contare solo le decodifiche complete) consentirebbe
+una ricerca locale molto più estesa a parità di budget dichiarato; la nostra
+scelta va nella direzione opposta e non può in alcun caso sovrastimare le
+prestazioni. L'arresto è esatto: tutte le $50$ esecuzioni terminano a
+$350\,000$ valutazioni, né una in più né una in meno.
+
+\section{Difficoltà affrontate e scelte progettuali}
+\label{sec:difficolta}
+
+Questa sezione documenta i tre problemi che hanno richiesto le decisioni
+progettuali più delicate. Sono presentati nella forma in cui si sono
+effettivamente manifestati (sintomo, diagnosi, rimedio).
+
+\subsection{Convergenza prematura: la soppressione dei duplicati}
+
+\textbf{Sintomo.} Nelle prime esecuzioni complete, l'ultimo miglioramento della
+soluzione migliore avveniva sistematicamente intorno alla generazione~14, dopo la
+quale l'algoritmo consumava il restante $75\%$ del budget senza progressi.
+
+\textbf{Diagnosi.} La selezione $(\mu+\lambda)$, prendendo semplicemente i $B$
+migliori, riempiva la popolazione di \emph{copie} dello stesso ottimo locale.
+Ma se tutti gli anticorpi hanno lo stesso costo, allora $c_{\max}=c_{\min}$, la
+fitness normalizzata degenera ($\hat{f}=1$ per tutti) e l'ipermutazione si
+riduce al minimo (una sola mutazione) \emph{per tutti}: l'algoritmo perde
+esattamente il meccanismo che dovrebbe salvarlo dalla stagnazione. La legge di
+ipermutazione, da sola, non basta: presuppone diversità nella popolazione.
+
+\textbf{Rimedio.} La \emph{soppressione dei duplicati} in selezione: a parità di
+costo passa un solo anticorpo. L'effetto è stato immediato e misurabile: su
+A-n45-k7 lo scarto è sceso dal $2{,}97\%$ all'$1{,}66\%$, e soprattutto
+\emph{l'ultimo miglioramento si è spostato dalla generazione~14 alle
+generazioni~42--54}, cioè l'algoritmo ha ripreso a progredire fino alla fine del
+budget.
+
+\subsection{Il vincolo di flotta e le istanze a capacità satura}
+
+\textbf{Sintomo.} Sull'istanza P-n50-k10 --- riempimento medio dei veicoli al
+$95\%$ --- l'algoritmo non produceva \emph{alcuna} soluzione con al più $k=10$
+percorsi.
+
+\textbf{Diagnosi.} Lo Split minimizza il \emph{costo}, non il \emph{numero di
+percorsi}. Su istanze a capacità satura, la suddivisione a costo minimo di un
+giant tour usa quasi sempre più di $k$ percorsi: spezzare un percorso in due
+allunga il costo di poco (due brevi tratte in più verso il depot) ma rilassa
+enormemente il vincolo di capacità. La misura empirica è impressionante: la
+percentuale di cloni la cui decodifica \emph{non ammette} una suddivisione in
+$\le k$ percorsi arriva al $93\%$ su P-n50-k10 e all'$84\%$ su B-n66-k9
+(Tabella~\ref{tab:operatori}). Il vincolo sul numero di veicoli, che sulle
+istanze ``facili'' è automaticamente soddisfatto, qui è il vincolo dominante.
+
+\textbf{Rimedio, in due passi.} Il primo tentativo --- decodificare normalmente e
+poi, solo alla fine, forzare una suddivisione vincolata sulla migliore soluzione
+--- ha prodotto soluzioni conformi ma pessime ($16{,}5\%$ di scarto): la ricerca
+non stava affatto ottimizzando ciò che poi veniva riportato. Il secondo tentativo
+--- usare direttamente la \textbf{decodifica vincolata} a $k$ percorsi come
+funzione di fitness (una programmazione dinamica bidimensionale
+$V[r][j]$, con $r$ = numero di percorsi usati) --- ha peggiorato ulteriormente
+($34\%$): i costi della decodifica \emph{rilassata} (senza vincolo sul numero di
+percorsi), essendo per costruzione più bassi, dominavano in selezione, e gli
+anticorpi conformi venivano sistematicamente eliminati.
+
+La soluzione corretta richiede \emph{entrambi} gli ingredienti: decodifica
+vincolata come fitness \textbf{e} selezione \textbf{lessicografica
+feasibility-first}, in cui un anticorpo conforme (al più $k$ percorsi) precede
+\emph{sempre} un anticorpo non conforme, e solo a parità di conformità decide il
+costo. Con questa regola di dominanza lo scarto su P-n50-k10 è crollato dal
+$34\%$ allo $0{,}57\%$. Si noti che non si tratta di un approccio a
+\emph{penalty function} (opzione~5 della consegna): non c'è alcun coefficiente di
+penalità da calibrare, né una esplorazione controllata della regione non
+ammissibile; è una semplice regola di dominanza in selezione, che mantiene le
+soluzioni non conformi nella popolazione come materiale genetico ma impedisce
+loro di prevalere.
+
+\subsection{L'ipermutazione troppo aggressiva}
+
+Un tentativo di aumentare l'esplorazione dimezzando $\rho$ (a $\ln(n)/2$, così
+che anche i migliori ricevano più mutazioni) ha prodotto un risultato
+paradossale: la soluzione migliore riportata restava bloccata alla \emph{prima}
+valutazione. La spiegazione è ora evidente alla luce del punto precedente:
+mutazioni più violente producono tour che si decodificano in più di $k$ percorsi,
+i quali non possono diventare la soluzione riportata. La lezione è che i
+parametri di un algoritmo non sono indipendenti dai vincoli del problema: $\rho =
+\ln n$ non è solo elegante, è anche l'unico valore che mantiene i cloni
+all'interno della regione ammissibile.
+
+\section{Taratura dei parametri}
+\label{sec:tuning}
+
+La taratura è stata condotta con una strategia di \emph{coordinate descent} in
+più round, su un sottoinsieme di quattro istanze eterogenee (una per gruppo:
+A-n60-k9, B-n66-k9, E-n101-k14, P-n101-k4) e con \textbf{tre semi casuali
+dedicati (100--102), disgiunti dai semi $0$--$4$ usati per gli esperimenti
+finali}. Questa separazione è una precauzione metodologica essenziale: tarare i
+parametri sugli stessi campioni casuali con cui poi si misurano le prestazioni
+significherebbe misurare sui dati di addestramento, sovrastimando la qualità.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Taratura dei parametri: scarto percentuale medio dall'ottimo sulle
+$4$ istanze di taratura $\times$ $3$ semi. \emph{Round~1}: forma del budget di
+ricerca locale ($K$ cloni, tetto \emph{cap} di FE per invocazione).
+\emph{Round~2}: struttura della popolazione e aging. \emph{Round~3}:
+ri-validazione delle configurazioni di frontiera sul motore definitivo.}
+\label{tab:tuning}
+\begin{tabular}{llr@{\hskip 14pt}llr@{\hskip 14pt}llr}
+\toprule
+\multicolumn{3}{c}{\textbf{Round 1} --- budget LS} &
+\multicolumn{3}{c}{\textbf{Round 2} --- popolazione, aging} &
+\multicolumn{3}{c}{\textbf{Round 3} --- ri-validazione} \\
+\cmidrule(r){1-3}\cmidrule(r){4-6}\cmidrule(r){7-9}
+config. & & scarto & config. & & scarto & config. & & scarto \\
+\midrule
+$K$=3, cap=5000 & & \textbf{3,11\%} & \emph{dup}=3      & & \textbf{3,00\%} & $K$=3, cap=5000, \emph{dup}=3, $\tau_B$=20 & & \textbf{2,90\%} \\
+$K$=2, cap=5000 & & 3,26\%          & $B$=10            & & 3,10\%          & $K$=2, cap=5000, \emph{dup}=3, $\tau_B$=20 & & 3,00\% \\
+$K$=3, cap=3000 & & 4,01\%          & $B$=20            & & 3,19\%          & $K$=3, cap=5000, \emph{dup}=3, $\tau_B$=10 & & 3,27\% \\
+$K$=3, cap=1500 & & 5,81\%          & $\tau_B$=10       & & 3,24\%          & $K$=2, cap=5000, \emph{dup}=3, $\tau_B$=10 & & 3,40\% \\
+$K$=3, cap=2000 & & 7,07\%          & $\tau_B$=30       & & 3,26\%          & & & \\
+$K$=4, cap=1500 & & 7,81\%          & base              & & 3,26\%          & & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+I risultati (Tabella~\ref{tab:tuning}) indicano con chiarezza che \textbf{poche
+discese profonde battono molte discese superficiali}: a parità di budget di
+ricerca locale per generazione, le configurazioni con tetto elevato ($5000$~FE)
+dominano nettamente quelle con tetto basso. L'interpretazione è che una discesa
+troncata troppo presto non riesce a uscire dai vicinati più economici (2-opt e
+Or-opt) e non arriva mai a esplorare le mosse inter-percorso, che sono quelle
+che riorganizzano davvero la soluzione. Il Round~2 mostra poi che aumentare il
+numero di cloni per genitore (\emph{dup}~$=3$) intensifica l'esplorazione attorno
+alle soluzioni élite, con il beneficio maggiore proprio sull'istanza più ostica
+(P-n101-k4).
+
+\paragraph{Una nota metodologica onesta.} I Round~1 e~2 hanno preceduto le modifiche
+della Sezione~\ref{sec:difficolta} (decodifica vincolata e selezione
+feasibility-first). Poiché quelle modifiche cambiano l'algoritmo in modo
+sostanziale, la taratura precedente non era più necessariamente valida: si è quindi
+eseguito un \textbf{round di ri-validazione} sul motore definitivo, sulle quattro
+configurazioni di frontiera. Ne è emerso un fatto istruttivo: $\tau_B=10$, che sul
+motore intermedio era vantaggioso, sul definitivo peggiora sistematicamente ---
+con la selezione feasibility-first le linee conformi impiegano più generazioni a
+maturare, e un aging aggressivo le elimina prematuramente.
+
+\paragraph{Configurazione finale (congelata).}
+$B=15$ (popolazione), $\mathit{dup}=3$ (cloni per anticorpo), $\rho=\ln n$
+(ipermutazione), $\tau_B=20$ (età massima), $K=3$ (cloni sottoposti a ricerca
+locale), $\mathit{cap}=5000$ (tetto di FE per discesa), $h=20$ (ampiezza liste di
+candidati), $25\%$ di semina greedy.
+
+\section{Originalità introdotte}
+\label{sec:originalita}
+
+Riassumiamo qui gli elementi che riteniamo costituiscano il contributo originale
+del progetto, al di là dell'applicazione dello schema standard di selezione
+clonale.
+
+\begin{enumerate}\itemsep1pt
+  \item \textbf{Decodifica esatta dentro una metaeuristica.} L'uso di un algoritmo
+  \emph{esatto} (programmazione dinamica) come funzione di valutazione di un
+  algoritmo \emph{approssimato}: la parte del problema che sappiamo risolvere
+  esattamente (la suddivisione, dato l'ordine) viene risolta esattamente; alla
+  metaeuristica resta solo la parte che richiede ricerca.
+
+  \item \textbf{Gestione del vincolo di flotta per dominanza.} Decodifica vincolata
+  e selezione lessicografica \emph{feasibility-first} sono, per quanto ne sappiamo,
+  una soluzione non standard al problema del numero di veicoli nella
+  rappresentazione a giant tour, ed evitano del tutto la calibrazione --- notoriamente
+  fragile --- di coefficienti di penalità.
+
+  \item \textbf{Aging con azzeramento dell'età sui miglioramenti.} Protegge le linee
+  evolutive produttive invece di invecchiarle meccanicamente: l'aging diventa un
+  ricambio dei \emph{fallimenti} più che un ricambio anagrafico.
+
+  \item \textbf{Soppressione dei duplicati come pre-requisito dell'ipermutazione.}
+  Il legame fra collasso della popolazione e degenerazione della legge di
+  ipermutazione (Sez.~\ref{sec:difficolta}) non è un accorgimento implementativo:
+  è la constatazione che, in un algoritmo immunologico, mantenere la \emph{varianza}
+  della fitness è condizione necessaria perché l'operatore caratterizzante del
+  paradigma funzioni.
+
+  \item \textbf{Ricerca locale a budget limitato per invocazione.} Il tetto di FE
+  per discesa --- motivato dall'osservazione che la certificazione di ottimalità
+  locale consuma gran parte del costo senza produrre miglioramenti --- si è rivelato
+  il parametro più influente dell'intero algoritmo.
+\end{enumerate}
+
+\section{Risultati sperimentali}
+\label{sec:risultati}
+
+\paragraph{Protocollo.} Dieci istanze CVRPLIB, $5$ esecuzioni indipendenti per
+istanza (semi $0$--$4$, fissati e dichiarati), criterio di arresto
+$\mathrm{FE}=3{,}5\times10^5$, parametri congelati dalla taratura. L'intera
+campagna ($50$ esecuzioni) richiede circa $150$ secondi su un normale portatile.
+Ogni esecuzione è \textbf{riproducibile bit a bit}: a parità di seme il risultato
+è identico.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Risultati su $5$ esecuzioni indipendenti per istanza
+($\mathrm{FE}=3{,}5\times10^5$). \emph{best}: miglior costo fra le $5$ esecuzioni;
+\emph{mean} e \emph{dev.\ std}: media e deviazione standard campionaria dei
+migliori costi di ciascuna esecuzione; \emph{iter.\ medie}: numero medio di
+generazioni necessarie a raggiungere il migliore risultato di ciascuna esecuzione;
+\emph{scarto}: distanza percentuale del \emph{best} dall'ottimo noto (BKS).
+Tutte le città sono servite in tutte le $50$ esecuzioni (\emph{satisfability}
+$=100\%$) e il numero di percorsi è sempre pari a $k$.}
+\label{tab:risultati}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Istanza & BKS & best & scarto & mean & dev.\ std & iter.\ medie & percorsi/$k$ \\
+\midrule
+A-n45-k7   & 1146 & \textbf{1148} & 0,17\% & 1158,2 & 9,2 & 17,4 & 7/7 \\
+A-n60-k9   & 1354 & \textbf{1358} & 0,30\% & 1363,8 & 4,8 & 15,4 & 9/9 \\
+A-n80-k10  & 1763 & 1811 & 2,72\% & 1818,4 & 8,8 & 14,8 & 10/10 \\
+B-n56-k7   & 707  & \textbf{710}  & 0,42\% & 712,6  & 1,9 & 15,6 & 7/7 \\
+B-n66-k9   & 1316 & 1332 & 1,22\% & 1335,6 & 3,0 & 17,0 & 9/9 \\
+B-n78-k10  & 1221 & 1239 & 1,47\% & 1245,8 & 5,1 & 10,8 & 10/10 \\
+E-n76-k8   & 735  & 743  & 1,09\% & 757,6  & 8,8 & 15,2 & 8/8 \\
+E-n101-k14 & 1067 & 1109 & 3,94\% & 1114,2 & 4,9 & 15,0 & 14/14 \\
+P-n50-k10  & 696  & 705  & 1,29\% & 708,6  & 3,3 & 19,2 & 10/10 \\
+P-n101-k4  & 681  & 719  & 5,58\% & 724,4  & 4,4 & 17,8 & 4/4 \\
+\midrule
+\multicolumn{3}{l}{\emph{scarto medio dei best}} & \textbf{1,82\%} &
+\multicolumn{2}{l}{\emph{scarto medio delle medie}} & \multicolumn{2}{r}{2,49\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Lettura d'insieme.} Lo scarto medio dall'ottimo è dell'$\mathbf{1{,}82\%}$;
+sette istanze su dieci restano sotto l'$1{,}5\%$ e tre sotto lo $0{,}5\%$
+(A-n45-k7 si ferma a due unità di costo dall'ottimo). Le deviazioni standard sono
+contenute ($1{,}9$--$9{,}2$, cioè meno dell'$1\%$ del costo): l'algoritmo è
+\emph{stabile}, non fortunato. Il numero medio di generazioni necessarie a
+raggiungere il risultato migliore è compreso fra $10{,}8$ e $19{,}2$ su circa
+$24$ generazioni totali: i miglioramenti continuano cioè fino a ridosso
+dell'esaurimento del budget, senza stagnazione.
+
+Le due istanze più difficili sono E-n101-k14 ($3{,}94\%$) e P-n101-k4
+($5{,}58\%$), entrambe con $100$ clienti; segue A-n80-k10 ($2{,}72\%$). La
+correlazione con la dimensione è evidente ma non è l'intera storia, come mostra
+la Sezione~\ref{sec:critica}.
+
+\section{Analisi critica}
+\label{sec:critica}
+
+\subsection{Curve di convergenza}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_convergenza.pdf}
+\caption{Curve di convergenza su quattro istanze rappresentative (una per
+gruppo): costo della migliore soluzione trovata in funzione delle valutazioni
+consumate. In azzurro le $5$ esecuzioni, in rosso la loro media, tratteggiato
+l'ottimo noto.}
+\label{fig:convergenza}
+\end{figure}
+
+Le curve (Figura~\ref{fig:convergenza}) hanno una forma comune: una discesa
+molto ripida nelle prime $20\,000$--$30\,000$ valutazioni --- dove agiscono
+l'inizializzazione greedy e le prime discese di ricerca locale --- seguita da un
+lungo miglioramento a gradini, con salti progressivamente più rari ma non nulli.
+Tre osservazioni critiche.
+
+\textbf{(a) Il budget è ben dimensionato ma non sovrabbondante.} Il numero medio di
+valutazioni necessarie a raggiungere il migliore risultato va da $155\,000$
+(B-n78-k10) a $260\,000$ (P-n101-k4), su $350\,000$ disponibili; e confrontando lo
+scarto a $50\,000$ valutazioni con quello finale (P-n101-k4: dal $7{,}84\%$ al
+$6{,}37\%$; E-n101-k14: dal $5{,}47\%$ al $4{,}42\%$) si vede che l'ultima parte del
+budget contribuisce ancora in modo apprezzabile. \emph{Non} siamo in saturazione:
+un budget maggiore darebbe verosimilmente risultati migliori --- informazione
+scomoda ma necessaria per interpretare correttamente i numeri.
+
+\textbf{(b) La dispersione fra esecuzioni si riduce nel tempo.} Le cinque curve
+partono separate (domina l'inizializzazione casuale) e convergono in una banda
+stretta: l'algoritmo è attratto verso una regione di qualità simile
+indipendentemente dal punto di partenza, coerentemente con le piccole deviazioni
+standard della Tabella~\ref{tab:risultati}.
+
+\textbf{(c) Nessuna stagnazione prematura.} Dopo l'introduzione della soppressione
+dei duplicati non si osservano più i lunghi plateau terminali delle prime versioni:
+ogni curva migliora anche nell'ultimo quarto del budget.
+
+\subsection{Che cosa fanno realmente gli operatori}
+
+Una critica legittima a molti lavori su algoritmi bio-ispirati è che gli
+operatori vengono \emph{descritti} ma non \emph{misurati}: si dà per scontato che
+funzionino. Abbiamo quindi strumentato l'algoritmo con contatori (che non
+consumano numeri casuali e non alterano i risultati, verificati identici) per
+misurare l'attività effettiva di ciascun meccanismo
+(Tabella~\ref{tab:operatori}).
+
+\begin{table}[H]
+\centering
+\small
+\caption{Attività degli operatori, media su $5$ esecuzioni. \emph{Morti aging}:
+anticorpi rimossi per superamento di $\tau_B$. \emph{Duplicati}: anticorpi
+declassati dalla soppressione dei duplicati. \emph{LS efficace}: invocazioni della
+ricerca locale che hanno prodotto un miglioramento, sul totale. \emph{Cloni
+$>k$}: percentuale di cloni la cui decodifica non ammette $\le k$ percorsi.}
+\label{tab:operatori}
+\begin{tabular}{lrrrrr}
+\toprule
+Istanza & generazioni & morti aging & duplicati & LS efficace & cloni $>k$ \\
+\midrule
+A-n45-k7   & 24,0 & 16,6 & 27,4 & 70,8 / 71,2 & 10,2\% \\
+A-n60-k9   & 24,0 & 24,8 & 32,2 & 69,8 / 70,4 & 40,6\% \\
+A-n80-k10  & 24,0 & 46,6 & 18,0 & 69,0 / 70,2 & 58,8\% \\
+B-n56-k7   & 24,0 & 48,8 & 46,6 & 69,2 / 70,0 & 0,2\% \\
+B-n66-k9   & 24,0 & 6,4  & 11,6 & 70,0 / 70,0 & 83,6\% \\
+B-n78-k10  & 24,0 & 30,8 & 25,8 & 69,2 / 70,0 & 46,2\% \\
+E-n76-k8   & 24,0 & 14,4 & 17,2 & 70,0 / 70,0 & 34,8\% \\
+E-n101-k14 & 24,0 & 26,2 & 17,8 & 69,8 / 70,0 & 46,2\% \\
+P-n50-k10  & 27,2 & 28,0 & 36,4 & 79,6 / 80,6 & 93,3\% \\
+P-n101-k4  & 24,0 & 30,4 & 33,2 & 69,8 / 70,0 & 0,0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+I dati confermano che nessun operatore è decorativo. L'\textbf{aging} è attivo
+ovunque (da $6$ a $49$ rimozioni per esecuzione); il caso di B-n66-k9, dove le
+morti sono poche, non è un'anomalia ma una conferma del design: lì gli anticorpi
+migliorano di continuo, l'età viene azzerata, e quindi pochi raggiungono $\tau_B$
+--- esattamente il comportamento voluto. La \textbf{soppressione dei duplicati}
+interviene decine di volte per esecuzione. La \textbf{ricerca locale} produce un
+miglioramento nel $\sim\!99\%$ delle invocazioni, il che giustifica il costo in
+valutazioni che le abbiamo dedicato.
+
+La colonna più eloquente è l'ultima. La percentuale di cloni non conformi al
+vincolo di flotta varia da $0\%$ a $93\%$: sono le istanze a capacità satura
+(P-n50-k10, B-n66-k9) quelle in cui il vincolo sul numero di veicoli è
+\emph{davvero} il vincolo attivo, e in cui la selezione feasibility-first sta
+lavorando a pieno regime. Su P-n101-k4 e B-n56-k7, all'estremo opposto, il
+vincolo è di fatto inattivo. Questa è la misura del perché le scelte descritte
+nella Sezione~\ref{sec:difficolta} erano necessarie e non sovra-ingegnerizzate.
+
+\subsection{Da dove viene lo scarto residuo? Una scomposizione esatta}
+
+L'analisi più utile che abbiamo condotto risponde a una domanda precisa: lo
+scarto residuo dall'ottimo è dovuto al fatto che \emph{ordiniamo male} i clienti
+dentro i percorsi, o al fatto che li \emph{raggruppiamo male} fra i veicoli?
+
+Presa la migliore soluzione trovata, si
+ri-ottimizza in modo \emph{ottimo} l'ordine di visita all'interno di ciascun
+percorso, lasciando invariato l'insieme dei clienti assegnati a ogni veicolo
+(algoritmo di Held--Karp, esatto, applicabile perché i percorsi contengono al più
+$13$ clienti nella quasi totalità dei casi; su P-n101-k4, i cui percorsi arrivano
+a $30$ clienti, si è usata una ricerca locale multi-avvio, calibrata verificando
+che non riesce a migliorare i percorsi \emph{ottimi} dell'istanza). Si ottiene
+allora la scomposizione additiva
+\[
+  \underbrace{\text{costo trovato} - \text{BKS}}_{\text{scarto totale}}
+  \;=\;
+  \underbrace{\text{costo trovato} - \text{costo riordinato}}_{\text{perdita di ordinamento}}
+  \;+\;
+  \underbrace{\text{costo riordinato} - \text{BKS}}_{\text{perdita di assegnamento}} .
+\]
+
+\begin{table}[H]
+\centering
+\small
+\caption{Scomposizione dello scarto dall'ottimo. La perdita di ordinamento è
+\textbf{nulla su tutte e dieci le istanze}: ogni percorso prodotto
+dall'algoritmo è già ottimo come TSP.}
+\label{tab:scomposizione}
+\begin{tabular}{lrrrrr}
+\toprule
+Istanza & clienti/percorso & costo trovato & costo riordinato & perdita ordin. & perdita assegn. \\
+\midrule
+A-n45-k7   & 6,3  & 1148 & 1148 & \textbf{0} & 2 \\
+A-n60-k9   & 6,6  & 1358 & 1358 & \textbf{0} & 4 \\
+A-n80-k10  & 7,9  & 1811 & 1811 & \textbf{0} & 48 \\
+B-n56-k7   & 7,9  & 710  & 710  & \textbf{0} & 3 \\
+B-n66-k9   & 7,2  & 1332 & 1332 & \textbf{0} & 16 \\
+B-n78-k10  & 7,7  & 1239 & 1239 & \textbf{0} & 18 \\
+E-n76-k8   & 9,4  & 743  & 743  & \textbf{0} & 8 \\
+E-n101-k14 & 7,1  & 1109 & 1109 & \textbf{0} & 42 \\
+P-n50-k10  & 4,9  & 705  & 705  & \textbf{0} & 9 \\
+P-n101-k4  & 25,0 & 719  & 719  & \textbf{0} & 38 \\
+\midrule
+\multicolumn{4}{l}{\emph{totale}} & \textbf{0 (0\%)} & \textbf{188 (100\%)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Il risultato (Tabella~\ref{tab:scomposizione}) è netto e, va detto,
+controintuitivo: \textbf{la perdita di ordinamento è esattamente zero su tutte e
+dieci le istanze}. Ogni singolo percorso prodotto dal nostro algoritmo è già
+ottimo come TSP. Il $100\%$ dello scarto residuo ($188$ unità di costo in totale)
+è \emph{perdita di assegnamento}: sbagliamo \emph{quali} clienti mettere insieme,
+mai \emph{in che ordine} servirli.
+
+Questa scoperta ha una spiegazione strutturale precisa, che riguarda proprio le
+scelte progettuali descritte sopra. Il vicinato 2-opt intra-percorso è esplorato
+a \emph{scansione completa} (i percorsi sono corti, quindi ce lo possiamo
+permettere), mentre i vicinati inter-percorso sono ristretti ai $20$ vicini più
+prossimi; inoltre lo Split può ritagliare solo segmenti \emph{contigui} del giant
+tour, il che limita strutturalmente i raggruppamenti raggiungibili. La nostra
+capacità di \emph{ordinare} è quindi molto più forte della nostra capacità di
+\emph{riassegnare}. È un'informazione preziosa: indica esattamente dove
+investire per migliorare l'algoritmo, e ci dice che ogni ulteriore sforzo sulla
+componente TSP sarebbe completamente sprecato.
+
+\paragraph{Un dettaglio istruttivo.} Contando gli auto-incroci geometrici dei
+percorsi (una soluzione 2-opt-ottima, con distanze euclidee reali, non può averne)
+se ne trova \emph{uno solo} in tutte e dieci le soluzioni, in un percorso di
+B-n78-k10. Sembrerebbe un difetto della ricerca locale; in realtà quel percorso è
+\emph{dimostrabilmente} ottimo come TSP (verificato con Held--Karp, costo $84$).
+L'incrocio sopravvive perché le distanze TSPLIB sono \emph{arrotondate all'intero}:
+la mossa 2-opt che lo eliminerebbe accorcia la lunghezza euclidea reale ma ha
+$\Delta \ge 0$ sul costo intero. Non è un errore dell'algoritmo, è una proprietà
+della metrica.
+
+\subsection{Un esperimento naturale: E-n101-k14 contro P-n101-k4}
+
+Analizzando i dati abbiamo notato che le istanze E-n101-k14 e P-n101-k4 hanno
+coordinate e domande \textbf{identiche}: sono lo stesso insieme di $100$ clienti,
+e differiscono unicamente per la capacità dei veicoli ($112$ contro $400$),
+quindi per il numero di percorsi ($14$ contro $4$) e per la loro lunghezza
+($\sim\!7$ contro $\sim\!25$ clienti). È un esperimento naturale controllato che
+ci viene offerto gratuitamente: l'unica variabile che cambia è la
+\emph{granularità} della partizione.
+
+I risultati sono $3{,}94\%$ contro $5{,}58\%$: l'istanza a percorsi lunghi è più
+difficile. Ma --- alla luce della scomposizione precedente --- \emph{non} perché
+i percorsi lunghi siano più difficili da ordinare (li ordiniamo comunque in modo
+ottimo). La ragione è che con $4$ percorsi da $25$ clienti lo spazio delle
+partizioni ammissibili è enormemente più vasto e più ``piatto'': spostare un
+cliente da un percorso all'altro cambia pochissimo il costo, i gradienti che
+guidano la ricerca locale sono deboli, e la decodifica Split --- che può produrre
+solo segmenti contigui del giant tour --- fatica a esplorare raggruppamenti
+radicalmente diversi. La Figura~\ref{fig:evsp} lo mostra visivamente: i nostri quattro percorsi lunghi
+(b) si intrecciano, mentre l'ottimo (c) li dispone in quattro regioni nettamente
+separate --- eppure entrambe le soluzioni hanno percorsi TSP-ottimi.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{figures/fig_panorama.pdf}
+\caption{Un esperimento naturale. Le istanze E-n101-k14 \textbf{(a)} e P-n101-k4
+\textbf{(b)} condividono \emph{esattamente} la stessa geometria (coordinate e
+domande identiche) e differiscono solo per la capacità dei veicoli ($112$ contro
+$400$): $14$ percorsi brevi contro $4$ percorsi lunghi. In \textbf{(c)} l'ottimo
+di P-n101-k4: i singoli percorsi sono ottimi come TSP sia in (b) sia in (c); ciò
+che cambia è la \emph{ripartizione} dei clienti, che nell'ottimo separa il piano
+in regioni molto più nette.}
+\label{fig:evsp}
+\end{figure}
+
+\subsection{Opinioni personali sui risultati}
+
+Il risultato che considero più significativo non è lo scarto medio dell'$1{,}82\%$,
+ma il fatto che le scelte progettuali più importanti siano emerse dai
+\emph{fallimenti}, e non dalla teoria. La soppressione dei duplicati, la selezione
+feasibility-first, il tetto di valutazioni per discesa: nessuna di queste tre era
+prevista nella progettazione iniziale, e tutte e tre sono state imposte da
+comportamenti anomali osservati sperimentalmente. In una metaeuristica, l'interazione fra gli
+operatori genera comportamenti che la descrizione dei singoli operatori non lascia
+prevedere, e solo la misurazione sistematica li rivela.
+
+Sono soddisfatto della qualità raggiunta, consapevole che essa poggia in larga
+parte sull'ibridazione: la ricerca locale produce la maggior parte della qualità,
+mentre il motore immunologico fornisce la diversificazione che le impedisce di
+restare intrappolata. Un algoritmo immunologico \emph{puro} non sarebbe
+competitivo; ma neppure una ricerca locale multi-avvio, priva
+dell'intensificazione attorno alle soluzioni élite, raggiungerebbe questi valori
+(una singola discesa da Clarke--Wright si ferma fra il $2\%$ e l'$8{,}5\%$ di
+scarto). Il limite più chiaro resta quello identificato dalla scomposizione: la
+debolezza nella \emph{riassegnazione} dei clienti fra veicoli --- un limite
+strutturale della rappresentazione a giant tour, il prezzo dell'eleganza della
+decodifica Split, non un difetto di implementazione.
+
+\section{Conclusioni}
+\label{sec:conclusioni}
+
+Il progetto ha prodotto un algoritmo immunologico a selezione clonale ibridato
+con ricerca locale che raggiunge uno scarto medio dell'$1{,}82\%$ dagli ottimi
+noti sulle dieci istanze richieste, con esecuzioni interamente riproducibili,
+tutte le città servite e il vincolo sul numero di veicoli sempre rispettato.
+
+Sul piano tecnico, ritengo che la scelta più felice sia stata quella della
+rappresentazione a giant tour con decodifica esatta: essa ha reso banale
+l'ammissibilità rispetto alla capacità, ha semplificato tutti gli operatori e ha
+permesso di concentrare la ricerca su un unico spazio (le permutazioni). Il suo
+prezzo --- la difficoltà nel riassegnare i clienti fra veicoli --- è emerso solo
+alla fine, dalla scomposizione esatta dello scarto, ed è oggi l'indicazione più
+precisa su dove intervenire.
+
+Se dovessi proseguire il lavoro, agirei esattamente lì, e non altrove: vicinati
+inter-percorso più potenti (catene di espulsione, scambi $\lambda$-interchange),
+liste di candidati più ampie, o un operatore di mutazione che agisca
+esplicitamente sui \emph{gruppi} anziché sull'ordine. Sarebbe inoltre naturale
+esplorare la variante con \emph{penalty function} (opzione~5 della consegna): il
+lavoro fatto sul vincolo di flotta mostra che le istanze a capacità satura
+costringono la ricerca a muoversi lungo il bordo della regione ammissibile, ed è
+plausibile che consentirne l'attraversamento controllato --- accettando
+temporaneamente soluzioni con più di $k$ percorsi, penalizzate --- offrirebbe
+scorciatoie che oggi ci sono precluse.
+
+Sul piano metodologico, l'esperienza mi lascia una convinzione precisa: la
+differenza fra un algoritmo che funziona e uno che non funziona non sta quasi mai
+nella scelta del paradigma, ma nei dettagli di interazione fra gli operatori ---
+dettagli che si scoprono solo misurando, e che nessuna descrizione teorica avrebbe
+potuto suggerire in anticipo.
+
+{\setlength{\parskip}{0pt}
+
+
+\end{document}
