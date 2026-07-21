@@ -88,6 +88,5 @@ Per ri-scaricarle: `python data/download_instances.py`.
 - [x] Audit di conformità — `python -m experiments.compliance`: verifica meccanica di tutti
       i requisiti sperimentali della consegna (17/17 PASS). Diagnostica di attività degli
       operatori in results/operator_activity.csv.
-- [ ] Fase 9 — relazione LaTeX (4-12 pagine, pseudocodice + diagrammi, punti i-v)
-- [ ] Fase 10 — consegna: sorgenti + relazione .pdf/.tex + figure → mario.pavone@unict.it
-      entro le 16:00 del 22/07
+- [x] Fase 9 — relazione LaTeX (4-12 pagine, pseudocodice + diagrammi, punti i-v)
+- [x] Fase 10 — consegna.

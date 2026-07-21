@@ -1,6 +1,5 @@
 """
-plot_solutions.py — Diagrammi delle soluzioni sul piano (figure per la
-relazione: la consegna raccomanda "diagrammi esplicativi").
+plot_solutions.py — Diagrammi delle soluzioni sul piano.
 
 Produce due tipi di figura in report/figures/:
 

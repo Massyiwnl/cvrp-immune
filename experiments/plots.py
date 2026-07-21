@@ -13,7 +13,7 @@ in funzione delle FE consumate: 5 curve sottili (una per run, funzioni a
 gradini ricostruite dalla history dei miglioramenti), la curva MEDIA in
 evidenza (campionata su una griglia comune di FE, tracciata solo da
 quando tutte e 5 le run hanno un best definito) e la linea tratteggiata
-del BKS. Esporta PDF (per LaTeX) e PNG (anteprima) in report/figures/.
+del BKS. Esporta PDF e PNG (anteprima) in report/figures/.
 
 Uso:  python -m experiments.plots
 """

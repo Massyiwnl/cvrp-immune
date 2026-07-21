@@ -1,14 +1,12 @@
 """Scarica le 10 istanze del progetto (+ soluzioni ottime) dal sito
-ufficiale CVRPLIB indicato nella consegna.
+ufficiale CVRPLIB """
 
-Uso:  python data/download_instances.py   (dalla radice della repo)
-"""
 import urllib.request
 from pathlib import Path
 
 BASE = "https://galgos.inf.puc-rio.br/cvrplib/index.php/en/download"
 
-# id numerici dei file sul sito ufficiale (ricavati dalla pagina Instances)
+
 IDS = {
     "A-n45-k7": 17, "A-n60-k9": 23, "A-n80-k10": 31,
     "B-n56-k7": 45, "B-n66-k9": 50, "B-n78-k10": 53,

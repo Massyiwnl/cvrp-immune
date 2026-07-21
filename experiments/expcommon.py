@@ -3,8 +3,7 @@ expcommon.py — Costanti e helper condivisi dagli script sperimentali
 (tuning, campagna completa, aggregazione).
 
 I BKS non sono hardcodati: vengono letti dalla riga "Cost" dei file .sol
-ufficiali di CVRPLIB presenti in data/ (fonte autorevole, gia' validata
-dal Test A della Fase 1).
+ufficiali di CVRPLIB presenti in data/
 """
 from __future__ import annotations
 

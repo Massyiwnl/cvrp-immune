@@ -15,7 +15,7 @@ In piu', per l'analisi: BKS (letto dai .sol ufficiali), gap % del best e
 della media, FE medie al best, numero di rotte del best (sempre <= k).
 
 Output: results/summary.csv (dati completi), results/summary_table.tex
-(tabella booktabs pronta per la relazione), tabella a video.
+(tabella booktabs)), tabella a video.
 
 Uso:  python -m experiments.aggregate
 """
@@ -124,7 +124,7 @@ def main():
 
 def operator_activity():
     """Media sulle 5 run, per istanza, dei contatori di attivita' degli
-    operatori immunologici: quante volte ciascun meccanismo si attiva
+    operatori immunologici, ovvero quante volte ciascun meccanismo si attiva
     realmente durante una run. Serve a sostanziare con dati (e non con
     affermazioni) il ruolo di aging, soppressione dei duplicati, ricerca
     locale e gestione del vincolo di flotta."""

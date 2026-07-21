@@ -1,5 +1,5 @@
 """
-gap_analysis.py — Scomposizione del gap dall'ottimo: quanto si perde
+gap_analysis.py — Scomposizione del gap dall'ottimo, ovvero, quanto si perde
 nell'ORDINAMENTO dei clienti dentro le rotte (sotto-problema TSP) e
 quanto nell'ASSEGNAMENTO dei clienti alle rotte (partizione)?
 

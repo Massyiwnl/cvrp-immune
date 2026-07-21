@@ -1,12 +1,11 @@
 """
 compliance.py — Audit di conformita' alla consegna.
 
-Verifica MECCANICAMENTE, uno per uno, tutti i requisiti del PDF di
-progetto, ricalcolando ogni valore da zero e senza fidarsi né del motore
+Verifica MECCANICAMENTE, uno per uno, tutti i requisiti, ricalcolando ogni valore da zero e senza fidarsi né del motore
 né dell'aggregatore. Ogni controllo stampa PASS/FAIL con l'evidenza
 numerica; exit code 1 se anche un solo controllo fallisce.
 
-Requisiti verificati (Sezione 2 "Protocollo Sperimentale" della consegna):
+Requisiti verificati (Sezione 2 "Protocollo Sperimentale"):
   R1  le 10 istanze richieste, tutte presenti e testate
   R2  runs = 5 per istanza (seed distinti)
   R3  criterio di arresto FE = 3.5e5 (esatto, in ogni run)
